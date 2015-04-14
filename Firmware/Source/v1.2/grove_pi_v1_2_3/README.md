@@ -4,7 +4,7 @@ Binary sketch size: 14,504 bytes (of a 32,256 byte maximum)
 
 ### Changes
 
-* Adds dust sensor
+* Add dust sensor
 
 
 ### Commands
