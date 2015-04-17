@@ -467,17 +467,40 @@ def chainableRgbLed_setLevel(pin, level, reverse):
 
 # Grove Dust sensor
 def dustSensor_init():
-    startSensor = 1
-    write_i2c_block(address,dustSensor_cmd+[pin,startSensor,0])
+    startSensor = 1 # stopSensor = 2
+    dustPin = 3
+    frame = dustSensor_cmd + [dustPin,startSensor,unused]
+    print("Frame sent: %s"%frame)
+    write_i2c_block(address, frame)
+    time.sleep(.05)
     return 1
 
 def readDustSensor():
+    dustPin = 3
+    write_i2c_block(address,dustSensor_cmd+[dustPin,unused,unused])
+    time.sleep(.2) #why not ...
     read_i2c_byte(address)
     number = read_i2c_block(address)
-    return (number[1] | (number[2]<<8) | (number[3]<<16) | (number[4]<<24))
+    
+    # data returned in IEEE format as a float in 4 bytes
+    f = 0
+    # data is reversed
+    for element in reversed(number[1:5]):
+        # Converted to hex
+        hex_val = hex(element)
+        #print hex_val
+        try:
+            h_val = hex_val[2] + hex_val[3]
+        except IndexError:
+            h_val = '0' + hex_val[2]
+        # Convert to char array
+        if f == 0:
+            h = h_val
+            f = 1
+        else:
+            h = h + h_val
+    # convert the temp back to float
+    result = round(struct.unpack('!f', h.decode('hex'))[0], 2)
 
-
-
-
-
+    return result
 

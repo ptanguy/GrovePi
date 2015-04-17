@@ -26,14 +26,18 @@ int8_t accv[3];
 byte rgb[] = { 0, 0, 0 };
 
 // Dust sensor
-int interNum = 0; // port D3 ???
+// INT0 => pin 2
+// INT1 => pin 3
+int interNum = 1; // INT1, port D3 for atmega328
 volatile unsigned long lowpulseoccupancy = 0;
 volatile unsigned long previousMicros = 0;
 unsigned long startDustSensorTime;
-unsigned long dustSensorPeriod = 30000; // 30 s
+unsigned long dustSensorPeriod = 30000; // in ms, 30 s
 int dustFlag=0;
-int dustPin = 3;
-int dustInter = 0;
+int dustPin = 3; //default related to interNum
+float ratio = 0;
+float concentration = 0;
+
 
 void setup()
 {
@@ -493,46 +497,62 @@ void loop()
       }
     }
     // end Grove Chainable RGB LED
-
+        
     // Grove Dust Sensor
     if(cmd[0] == 96)
     {
-        dustPin = cmd[2];
-        dustFlag = cmd[3]; // 0 == 'stop', 1 == 'start'
-    }
+     if(cmd[2] == 1) // if start
+     {
+      dustPin = cmd[1];
+      dustFlag = 1; // 2 == 'stop', 1 == 'start'
+      pinMode(dustPin,INPUT);
+      if (dustPin == 2)
+      {
+          interNum = 0;
+      }
+      else if (dustPin == 3)
+      {
+          interNum = 1;
+      }
 
-    if(dustFlag == 1)
+      attachInterrupt(interNum,measureLPO,CHANGE);
+      startDustSensorTime = millis();
+      
+      Serial.println("Dust sensor Started!"); //Debug
+        
+      }
+      else if (cmd[2] == 2)
+      {
+       detachInterrupt(interNum);
+       dustFlag = 0;
+      }
+     }
+ }    
+
+ if(dustFlag == 1)
+ {
+    //Record data every dustSensorPeriod
+
+    if((millis()-startDustSensorTime)>dustSensorPeriod)
     {
-        if (dustInter == 0)
-        {
-            pinMode(dustPin,INPUT);
-            attachInterrupt(interNum,measureLPO,CHANGE);
-            dustInter = 1;
-        }
-        if((millis()-startDustSensorTime)>dustSensorPeriod)
-        {
-         unsigned long _lpo = lowpulseoccupancy;
-         lowpulseoccupancy = 0;
-         float ratio = 0;
-         float concentration = 0;
-         ratio = _lpo/(dustSensorPeriod*10);
-         concentration = 1.1*pow(ratio,3)-3.8*pow(ratio,2)+520*ratio+0.62;
-         dustBuf[1] = (byte) concentration;
-         dustBuf[2] = (byte) concentration >> 8;
-         dustBuf[3] = (byte) concentration >> 16;
-         dustBuf[4] = (byte) concentration >> 24;
-         startDustSensorTime = millis();
-        }
+     unsigned long _lpo = lowpulseoccupancy;
+     lowpulseoccupancy = 0;
+     
+     ratio = _lpo/(dustSensorPeriod*10.0);
+     concentration = 1.1*pow(ratio,3)-3.8*pow(ratio,2)+520*ratio+0.62;
+     Serial.print(_lpo);
+     Serial.print(",");
+     Serial.print(ratio);
+     Serial.print(",");
+     Serial.println(concentration);
+    
+     byte* bb = (byte*) &concentration;
+     for(j=0;j<4;j++)
+        dustBuf[j+1]=bb[j];
+     
+     startDustSensorTime = millis();
     }
-    else if (dustFlag == 0)
-    {
-        if (dustInter = 1)
-        {
-            detachInterrupt(interNum);        
-            dustInter = 0;
-            }
-    }
-  }
+ }
 }
 
 void receiveData(int byteCount)
@@ -563,13 +583,12 @@ void sendData()
     Wire.write(b, 9);
 }
 
-
 void measureLPO()
 {
- if(digitalRead(pin) == LOW)
+ if(digitalRead(dustPin) == LOW)
  {
   previousMicros = micros();
-}
+ }
  else
  {
   lowpulseoccupancy += micros() - previousMicros;

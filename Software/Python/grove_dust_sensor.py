@@ -15,11 +15,11 @@ import grovepi
 # SIG,NC,VCC,GND
 #dustPin = 3
 
-period = 60
+period = 35
 
 if __name__ == '__main__':
-    #grovepi.dustSensor_init()
-
+    grovepi.dustSensor_init()
+    lastUp = time.time()
     while True:
         if time.time() > (lastUp+period): 
             try:
