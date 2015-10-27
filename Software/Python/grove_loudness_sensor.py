@@ -14,7 +14,7 @@ import grovepi
 
 # Connect the Grove Loudness Sensor to analog port A0
 # SIG,NC,VCC,GND
-loudness_sensor = 0
+loudness_sensor = 1
 
 while True:
     try:

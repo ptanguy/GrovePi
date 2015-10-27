@@ -30,7 +30,7 @@ byte rgb[] = { 0, 0, 0 };
 // INT1 => pin 3
 int interNum = 1; // INT1, port D3 for atmega328
 volatile unsigned long lowpulseoccupancy = 0;
-volatile unsigned long previousMicros = 0;
+volatile unsigned long previousMicros = micros();
 unsigned long startDustSensorTime;
 unsigned long dustSensorPeriod = 30000; // in ms, 30 s
 int dustFlag=0;
@@ -519,12 +519,13 @@ void loop()
       startDustSensorTime = millis();
       
       Serial.println("Dust sensor Started!"); //Debug
-        
+      previousMicros = micros(); 
       }
       else if (cmd[2] == 2)
       {
        detachInterrupt(interNum);
        dustFlag = 0;
+       Serial.println("Dust sensor Stopped!"); //Debug
       }
      }
  }    
@@ -536,10 +537,10 @@ void loop()
     if((millis()-startDustSensorTime)>dustSensorPeriod)
     {
      unsigned long _lpo = lowpulseoccupancy;
-     lowpulseoccupancy = 0;
-     
      ratio = _lpo/(dustSensorPeriod*10.0);
      concentration = 1.1*pow(ratio,3)-3.8*pow(ratio,2)+520*ratio+0.62;
+    
+     // Debug
      Serial.print(_lpo);
      Serial.print(",");
      Serial.print(ratio);
@@ -550,6 +551,9 @@ void loop()
      for(j=0;j<4;j++)
         dustBuf[j+1]=bb[j];
      
+     lowpulseoccupancy = 0;
+     ratio = 0;
+     concentration = 0;
      startDustSensorTime = millis();
     }
  }

@@ -478,7 +478,7 @@ def dustSensor_init():
 def readDustSensor():
     dustPin = 3
     write_i2c_block(address,dustSensor_cmd+[dustPin,unused,unused])
-    time.sleep(.2) #why not ...
+    time.sleep(.4) #why not ...
     read_i2c_byte(address)
     number = read_i2c_block(address)
     
